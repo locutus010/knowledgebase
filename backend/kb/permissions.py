@@ -60,3 +60,18 @@ def require_space(db: Session, user: User, slug: str, need: Level = Level.READ) 
     level = access(db, user, space)
     check(level, need)
     return space, level
+
+
+def require_page(db: Session, user: User, page_id, need: Level = Level.READ,
+                 include_deleted: bool = False):
+    """Seite samt Bereich und Recht. Seiten im Papierkorb gelten als nicht vorhanden,
+    außer der Aufrufer fragt ausdrücklich nach ihnen (Wiederherstellen, endgültig löschen)."""
+    from kb.models import Page
+
+    page = db.get(Page, page_id)
+    if page is None or (page.deleted_at is not None and not include_deleted):
+        raise AppError(404, "Nicht gefunden.")
+    space = db.get(Space, page.space_id)
+    level = access(db, user, space)
+    check(level, need)
+    return page, space, level

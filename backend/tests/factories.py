@@ -51,3 +51,16 @@ def make_space(db, creator=None, name="Engineering", default_access="read", colo
         db.add(models.SpaceMember(space_id=space.id, user_id=user.id, level=level))
     db.flush()
     return space
+
+
+def make_page(db, space, author, title="Seite", parent=None, content="", position=0):
+    from kb import clock
+
+    page = models.Page(space_id=space.id, parent_id=parent.id if parent else None, title=title,
+                       content_md=content, position=position, created_by=author, updated_by=author)
+    db.add(page)
+    db.flush()
+    db.add(models.PageRevision(page_id=page.id, version=1, title=title, content_md=content,
+                               author_id=author.id, created_at=clock.now()))
+    db.flush()
+    return page

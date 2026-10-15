@@ -105,3 +105,25 @@ def committing_engine(engine):
             "SELECT tablename FROM pg_tables WHERE schemaname='public' AND tablename <> 'alembic_version'"
         )).scalars().all()
         conn.execute(text("TRUNCATE " + ", ".join(f'"{t}"' for t in tables) + " CASCADE"))
+
+
+@pytest.fixture
+def frozen_clock(monkeypatch):
+    """Verstellbare Uhr: frozen_clock.advance(minutes=11)."""
+    from datetime import timedelta
+
+    from kb import clock
+
+    class Clock:
+        def __init__(self):
+            self.current = clock.now()
+
+        def __call__(self):
+            return self.current
+
+        def advance(self, **kw):
+            self.current += timedelta(**kw)
+
+    c = Clock()
+    monkeypatch.setattr(clock, "now", c)
+    return c
