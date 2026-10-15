@@ -47,6 +47,11 @@ function PageBody({ page }: { page: PageT }) {
   const editable = canEdit(page.my_level)
   const location = useLocation()
   const [editing, setEditing] = useState(() => editable && !!(location.state as { edit?: boolean } | null)?.edit)
+  // Den Wunsch „gleich bearbeiten“ nur einmal einlösen — sonst steht er in der Historie und
+  // jedes Neuladen öffnete die Seite wieder im Bearbeitungsmodus.
+  useEffect(() => {
+    if ((location.state as { edit?: boolean } | null)?.edit) navigate(location.pathname, { replace: true, state: null })
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
   const [mode, setModeState] = useState<EditorMode>(readMode)
   const [title, setTitle] = useState(page.title)
   const [icon, setIcon] = useState(page.icon)

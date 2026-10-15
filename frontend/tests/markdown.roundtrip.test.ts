@@ -26,6 +26,7 @@ const CASES: Record<string, string> = {
   'Hinweis NOTE': '> [!NOTE]\n> Zur Info.',
   'Hinweis TIP': '> [!TIP]\n> Ein Tipp mit **fett**.',
   'Hinweis WARNING': '> [!WARNING]\n> Nie freitags deployen.',
+  'Hinweis mit Tabelle und Liste': '> [!TIP]\n> | A | B |\n> | --- | --- |\n> | 1 | 2 |\n>\n> - [ ] offen\n> - [x] zu',
   'Hinweis DANGER': '> [!DANGER]\n> Löscht alles.\n>\n> Zweiter Absatz.',
 }
 

@@ -66,9 +66,13 @@ export const Callout = Node.create({
 
   renderMarkdown(node, h) {
     const kind = String(node.attrs?.kind ?? 'note').toUpperCase()
-    const inner = (node.content ?? []).map((c: unknown, i: number) => h.renderChild?.(c as never, i) ?? h.renderChildren([c as never])).join('\n\n')
-    const lines = inner.split('\n').map((l: string) => (l ? `> ${l}` : '>'))
-    return `> [!${kind}]\n${lines.join('\n')}`
+    // Jedes Kind ohne umgebende Leerzeilen, getrennt durch genau eine „>“-Leerzeile —
+    // Tabellen liefern sonst eigene Leerzeilen mit, und es wüchse bei jedem Speichern.
+    const blocks = (node.content ?? []).map((c: unknown, i: number) =>
+      (h.renderChild?.(c as never, i) ?? h.renderChildren([c as never])).replace(/^\n+|\n+$/g, ''),
+    )
+    const body = blocks.map((b: string) => b.split('\n').map((l: string) => (l.trim() ? `> ${l}` : '>')).join('\n'))
+    return `> [!${kind}]\n${body.join('\n>\n')}`
   },
 
   addCommands() {

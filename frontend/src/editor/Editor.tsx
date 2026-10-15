@@ -121,9 +121,29 @@ export function Editor({ value, onChange, mode, editable, onUpload, onReady }: P
     )
   }
 
+  // Klick unter den Text: weiterschreiben am Ende. Endet die Seite mit Tabelle oder Codeblock,
+  // käme man sonst mit der Maus nicht dahinter.
+  const focusEnd = () => {
+    if (!editor) return
+    const last = editor.state.doc.lastChild
+    if (last?.type.name === 'paragraph' && last.content.size === 0) editor.commands.focus('end')
+    else editor.chain().insertContentAt(editor.state.doc.content.size, { type: 'paragraph' }).focus('end').run()
+  }
+
   return (
     <>
       <EditorContent editor={editor} />
+      {editable ? (
+        <div
+          data-testid="editor-end"
+          aria-hidden
+          className="h-28 cursor-text"
+          onMouseDown={(e) => {
+            e.preventDefault()
+            focusEnd()
+          }}
+        />
+      ) : null}
       {editor && editable ? <BubbleToolbar editor={editor} /> : null}
       <input
         ref={fileInput}
