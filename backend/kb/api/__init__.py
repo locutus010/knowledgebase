@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter
 
-from kb.api import attachments, auth, pages, personal, search, spaces, templates, users
+from kb.api import attachments, auth, pages, personal, search, spaces, templates, transfer, users
 
 api = APIRouter(prefix="/api/v1")
 api.include_router(auth.router)
@@ -13,3 +13,4 @@ api.include_router(personal.router)
 api.include_router(templates.router)
 api.include_router(search.router)
 api.include_router(attachments.router)
+api.include_router(transfer.router)
