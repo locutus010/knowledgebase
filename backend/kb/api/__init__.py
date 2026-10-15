@@ -2,10 +2,11 @@
 
 from fastapi import APIRouter
 
-from kb.api import attachments, auth, pages, personal, search, spaces, templates, transfer, users
+from kb.api import attachments, auth, oidc, pages, personal, search, spaces, templates, transfer, users
 
 api = APIRouter(prefix="/api/v1")
 api.include_router(auth.router)
+api.include_router(oidc.router)
 api.include_router(users.router)
 api.include_router(spaces.router)
 api.include_router(pages.router)

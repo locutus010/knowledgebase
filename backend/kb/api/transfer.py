@@ -56,6 +56,6 @@ def import_into_space(slug: str, file: UploadFile, db: DB, user: User = Depends(
     try:
         report = transfer.import_upload(db, user, space, file.filename or "import.zip", file.file, settings)
     except transfer.ImportError_ as e:
-        db.rollback()
+        # Die AppError läuft durch get_db, das die Transaktion zurückrollt.
         raise AppError(422, str(e)) from None
     return {"pages": report.pages, "attachments": report.attachments, "skipped": report.skipped}
