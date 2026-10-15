@@ -34,6 +34,7 @@ export default function Revisions() {
 
   const idx = list.data?.findIndex((r) => r.version === selected) ?? -1
   const prevVersion = idx >= 0 ? list.data?.[idx + 1]?.version : undefined
+  const numberOf = (v?: number) => list.data?.find((r) => r.version === v)?.number
   const cur = useQuery({ queryKey: ['revision', pageId, selected], queryFn: () => get<Rev>(`/pages/${pageId}/revisions/${selected}`), enabled: selected !== null })
   const prev = useQuery({ queryKey: ['revision', pageId, prevVersion], queryFn: () => get<Rev>(`/pages/${pageId}/revisions/${prevVersion}`), enabled: prevVersion !== undefined })
 
@@ -46,7 +47,7 @@ export default function Revisions() {
       await post(`/pages/${p.id}/revisions/${selected}/restore`)
       qc.invalidateQueries({ queryKey: qk.page(p.id) })
       qc.invalidateQueries({ queryKey: ['revisions', pageId] })
-      toast.success(`Version ${selected} wiederhergestellt`)
+      toast.success(`Version ${numberOf(selected ?? undefined)} wiederhergestellt`)
       navigate(`/p/${p.id}`)
     } catch (e) {
       toast.error((e as Error).message)
@@ -72,7 +73,7 @@ export default function Revisions() {
                   <Avatar name={r.author?.name ?? '?'} size={26} />
                   <span className="min-w-0">
                     <span className="block text-[13.5px] font-medium">
-                      Version {r.version}{i === 0 ? <span className="ml-1.5 text-xs font-normal text-ink-subtle">aktuell</span> : null}
+                      Version {r.number}{i === 0 ? <span className="ml-1.5 text-xs font-normal text-ink-subtle">aktuell</span> : null}
                     </span>
                     <span className="block text-xs text-ink-subtle" title={formatDateTime(r.created_at)}>
                       {r.author?.name ?? 'Unbekannt'}, {relativeTime(r.created_at)}
@@ -88,9 +89,9 @@ export default function Revisions() {
             <>
               <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <h1 className="text-xl font-semibold tracking-tight">Version {cur.data.version}</h1>
+                  <h1 className="text-xl font-semibold tracking-tight">Version {numberOf(cur.data.version)}</h1>
                   <p className="mt-1 text-[13px] text-ink-muted">
-                    {prevVersion ? `Änderungen gegenüber Version ${prevVersion}` : 'Erste Fassung der Seite'}
+                    {prevVersion ? `Änderungen gegenüber Version ${numberOf(prevVersion)}` : 'Erste Fassung der Seite'}
                     {titleChanged ? `. Titel geändert von „${prev.data!.title}“ zu „${cur.data.title}“` : ''}
                   </p>
                 </div>
@@ -105,7 +106,7 @@ export default function Revisions() {
           )}
         </section>
       </div>
-      <Confirm open={confirm} onOpenChange={setConfirm} title={`Version ${selected} wiederherstellen?`}
+      <Confirm open={confirm} onOpenChange={setConfirm} title={`Version ${numberOf(selected ?? undefined)} wiederherstellen?`}
         description="Der Inhalt dieser Version wird zur neuen aktuellen Fassung. Die bisherigen Versionen bleiben erhalten."
         confirmLabel="Wiederherstellen" onConfirm={() => void restore()} />
     </div>

@@ -17,7 +17,7 @@ export function ConflictDialog({ conflict, mine, onKeepMine, onTakeTheirs, onClo
       onOpenChange={(o) => !o && onClose()}
       width="max-w-3xl"
       title="Jemand hat die Seite inzwischen geändert"
-      description={conflict ? `${conflict.updated_by ?? 'Jemand'} hat Version ${conflict.version} gespeichert, während du geschrieben hast. Unten siehst du, was deine Fassung gegenüber der gespeicherten ändern würde.` : undefined}
+      description={conflict ? `${conflict.updated_by ?? 'Jemand'} hat die Seite gespeichert, während du geschrieben hast. Unten siehst du, was deine Fassung gegenüber der gespeicherten ändern würde.` : undefined}
       footer={
         <>
           <Button onClick={onTakeTheirs}>Gespeicherte Fassung laden</Button>

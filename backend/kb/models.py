@@ -148,6 +148,9 @@ class PageRevision(Base):
     title: Mapped[str] = mapped_column(String(200), nullable=False)
     content_md: Mapped[str] = mapped_column(Text, nullable=False)
     author_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    # Kennung der Bearbeitungsrunde (Bearbeiten → Fertig); Autospeichern derselben Runde
+    # landet in derselben Revision.
+    edit_session: Mapped[str | None] = mapped_column(String(64))
     created_at: Mapped[datetime] = _now()
 
     author: Mapped[User | None] = relationship()

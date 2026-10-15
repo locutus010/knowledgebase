@@ -24,6 +24,11 @@ type SaveState = 'saved' | 'dirty' | 'saving' | 'conflict' | 'error'
 const AUTOSAVE_MS = 1500
 const MODE_KEY = 'kb-editor-mode'
 
+function newEditSession(): string {
+  // randomUUID gibt es nur in sicheren Kontexten (HTTPS, localhost) — im LAN per HTTP nicht.
+  return globalThis.crypto?.randomUUID?.() ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`
+}
+
 function readMode(): EditorMode {
   try {
     return localStorage.getItem(MODE_KEY) === 'markdown' ? 'markdown' : 'wysiwyg'
@@ -63,6 +68,13 @@ function PageBody({ page }: { page: PageT }) {
   const [articleEl, setArticleEl] = useState<HTMLElement | null>(null)
 
   const base = useRef(page.version)
+  // Eine Kennung je Bearbeitungsrunde: alles Autospeichern zwischen „Bearbeiten“ und „Fertig“
+  // wird eine Version, die nächste Runde eine neue.
+  const editSession = useRef(newEditSession())
+  const startEditing = () => {
+    editSession.current = newEditSession()
+    setEditing(true)
+  }
   const draft = useRef({ title, content, icon })
   draft.current = { title, content, icon }
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined)
@@ -94,6 +106,7 @@ function PageBody({ page }: { page: PageT }) {
     try {
       const saved = await patch<PageT>(`/pages/${page.id}`, {
         base_version: base.current, title: d.title.trim(), content_md: d.content, icon: d.icon,
+        edit_session: editSession.current,
       })
       base.current = saved.version
       qc.setQueryData(qk.page(page.id), saved)
@@ -236,7 +249,7 @@ function PageBody({ page }: { page: PageT }) {
                   Fertig
                 </Button>
               ) : (
-                <Button size="sm" onClick={() => setEditing(true)}>
+                <Button size="sm" onClick={startEditing}>
                   <PenLine />
                   Bearbeiten
                 </Button>
@@ -302,7 +315,7 @@ function PageBody({ page }: { page: PageT }) {
 
       {!editing && editable ? (
         <div className="no-print fixed right-5 bottom-5 sm:hidden">
-          <Button variant="primary" size="lg" className="rounded-full shadow-pop" onClick={() => setEditing(true)}>
+          <Button variant="primary" size="lg" className="rounded-full shadow-pop" onClick={startEditing}>
             <PenLine />Bearbeiten
           </Button>
         </div>

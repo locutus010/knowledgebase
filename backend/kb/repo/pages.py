@@ -94,7 +94,7 @@ def create(db: Session, author: User, space: Space, *, title: str, parent_id=Non
 
 
 def save(db: Session, author: User, page: Page, *, base_version: int, title=None,
-         content_md=None, icon=None, merge: bool = True) -> Page:
+         content_md=None, icon=None, merge: bool = True, edit_session: str | None = None) -> Page:
     db.refresh(page, with_for_update=True)  # zwei gleichzeitige Speichervorgänge serialisieren
     if page.version != base_version:
         raise ConflictError(page)
@@ -108,7 +108,7 @@ def save(db: Session, author: User, page: Page, *, base_version: int, title=None
     page.version += 1
     page.updated_at = clock.now()
     page.updated_by_id = author.id
-    revisions.record(db, page, author, allow_merge=merge)
+    revisions.record(db, page, author, edit_session=edit_session, allow_merge=merge)
     db.flush()
     return page
 

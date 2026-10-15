@@ -102,6 +102,8 @@ export interface Template {
 
 export interface RevisionMeta {
   version: number
+  /** fortlaufend ab 1 — für Menschen; version ist der interne Zähler */
+  number: number
   title: string
   author: PersonRef | null
   created_at: string

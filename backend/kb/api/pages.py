@@ -42,6 +42,7 @@ class PageCreate(BaseModel):
 
 class PagePatch(BaseModel):
     base_version: int = Field(ge=1, le=10**9)
+    edit_session: str | None = Field(default=None, max_length=64)
     title: str | None = Field(default=None, max_length=200)
     content_md: str | None = Field(default=None, max_length=MAX_CONTENT)
     icon: str | None = Field(default=None, max_length=16)
@@ -110,6 +111,7 @@ class TrashItem(BaseModel):
 
 class RevisionMeta(BaseModel):
     version: int
+    number: int
     title: str
     author: PersonRef | None
     created_at: datetime
@@ -174,7 +176,7 @@ def patch_page(page_id: uuid.UUID, body: PagePatch, db: DB, user: User = Depends
     page, space, level = require_page(db, user, page_id, Level.EDIT)
     try:
         repo.save(db, user, page, base_version=body.base_version, title=body.title,
-                  content_md=body.content_md, icon=body.icon)
+                  content_md=body.content_md, icon=body.icon, edit_session=body.edit_session)
     except repo.ConflictError as e:
         cur = e.page
         updated_by = _person(db, cur.updated_by_id)
@@ -237,8 +239,8 @@ def get_trash(slug: str, db: DB, user: User = Depends(current_user)):
 @router.get("/pages/{page_id}/revisions", response_model=list[RevisionMeta])
 def list_revisions(page_id: uuid.UUID, db: DB, user: User = Depends(current_user)):
     page, _, _ = require_page(db, user, page_id)
-    return [RevisionMeta(version=r.version, title=r.title, author=_person(db, r.author_id),
-                         created_at=r.created_at) for r in rev_repo.list_for(db, page)]
+    return [RevisionMeta(version=r.version, number=n, title=r.title, author=_person(db, r.author_id),
+                         created_at=r.created_at) for r, n in rev_repo.list_for(db, page)]
 
 
 def _revision(db, page, version):
@@ -254,8 +256,8 @@ def _revision(db, page, version):
 def get_revision(page_id: uuid.UUID, version: int, db: DB, user: User = Depends(current_user)):
     page, _, _ = require_page(db, user, page_id)
     r = _revision(db, page, version)
-    return RevisionOut(version=r.version, title=r.title, author=_person(db, r.author_id),
-                       created_at=r.created_at, content_md=r.content_md)
+    return RevisionOut(version=r.version, number=rev_repo.number_of(db, page, r.version), title=r.title,
+                       author=_person(db, r.author_id), created_at=r.created_at, content_md=r.content_md)
 
 
 @router.post("/pages/{page_id}/revisions/{version}/restore", response_model=PageOut)

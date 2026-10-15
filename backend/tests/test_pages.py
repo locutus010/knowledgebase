@@ -102,27 +102,38 @@ def test_stale_base_version_is_409_with_current_text(ec, space, db, editor):
     assert revisions(db, page.id) == before
 
 
-def test_saves_within_ten_minutes_merge_into_one_revision(ec, space, db, editor, frozen_clock):
+def test_autosaves_of_one_edit_session_merge_into_one_revision(ec, space, db, editor):
     page = make_page(db, space, editor, content="v1")
-    ec.patch(f"/api/v1/pages/{page.id}", json={"base_version": 1, "content_md": "v2"})
-    frozen_clock.advance(minutes=5)
-    ec.patch(f"/api/v1/pages/{page.id}", json={"base_version": 2, "content_md": "v3"})
-    assert revisions(db, page.id) == 2  # Erstfassung + zusammengefasste Bearbeitung
-    frozen_clock.advance(minutes=11)
-    ec.patch(f"/api/v1/pages/{page.id}", json={"base_version": 3, "content_md": "v4"})
+    for i, text in enumerate(["v2", "v3", "v4"], start=1):
+        ec.patch(f"/api/v1/pages/{page.id}", json={"base_version": i, "content_md": text, "edit_session": "runde-a"})
+    assert revisions(db, page.id) == 2  # Erstfassung + eine Runde
+
+
+def test_each_edit_session_gets_its_own_revision(ec, space, db, editor):
+    """Bearbeiten → Fertig zweimal direkt hintereinander: zwei Versionen, nicht eine."""
+    page = make_page(db, space, editor, content="v1")
+    ec.patch(f"/api/v1/pages/{page.id}", json={"base_version": 1, "content_md": "v2", "edit_session": "runde-a"})
+    ec.patch(f"/api/v1/pages/{page.id}", json={"base_version": 2, "content_md": "v3", "edit_session": "runde-b"})
     assert revisions(db, page.id) == 3
 
 
-def test_other_author_starts_new_revision(app, ec, space, db, editor, frozen_clock):
+def test_save_without_edit_session_never_merges(ec, space, db, editor):
+    page = make_page(db, space, editor, content="v1")
+    ec.patch(f"/api/v1/pages/{page.id}", json={"base_version": 1, "content_md": "v2"})
+    ec.patch(f"/api/v1/pages/{page.id}", json={"base_version": 2, "content_md": "v3"})
+    assert revisions(db, page.id) == 3
+
+
+def test_other_author_starts_new_revision(app, ec, space, db, editor):
     from tests.factories import logged_in
 
     page = make_page(db, space, editor, content="v1")
-    ec.patch(f"/api/v1/pages/{page.id}", json={"base_version": 1, "content_md": "v2"})
+    ec.patch(f"/api/v1/pages/{page.id}", json={"base_version": 1, "content_md": "v2", "edit_session": "s"})
     other = make_user(db)
     db.add(models.SpaceMember(space_id=space.id, user_id=other.id, level="edit"))
     db.flush()
     oc = logged_in(app, other)
-    oc.patch(f"/api/v1/pages/{page.id}", json={"base_version": 2, "content_md": "v3"})
+    oc.patch(f"/api/v1/pages/{page.id}", json={"base_version": 2, "content_md": "v3", "edit_session": "s"})
     assert revisions(db, page.id) == 3
 
 

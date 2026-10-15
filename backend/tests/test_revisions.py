@@ -19,7 +19,20 @@ def test_list_revisions_newest_first(setup):
     client, page = setup
     revs = client.get(f"/api/v1/pages/{page.id}/revisions").json()
     assert [r["version"] for r in revs] == [3, 2, 1]
+    assert [r["number"] for r in revs] == [3, 2, 1]
     assert revs[0]["author"]["name"] == "Rita"
+
+
+def test_numbers_have_no_gaps_when_autosaves_merge(client, db):
+    """Interner Zähler springt (1 → 4), die angezeigte Nummer nicht (1 → 2)."""
+    editor = make_user(db, role="editor")
+    space = make_space(db, members=[(editor, "edit")])
+    page = make_page(db, space, editor, "T", content="eins")
+    login(client, editor)
+    for i in range(1, 4):
+        client.patch(f"/api/v1/pages/{page.id}", json={"base_version": i, "content_md": f"x{i}", "edit_session": "r"})
+    revs = client.get(f"/api/v1/pages/{page.id}/revisions").json()
+    assert [(r["number"], r["version"]) for r in revs] == [(2, 4), (1, 1)]
 
 
 def test_get_single_revision(setup):
