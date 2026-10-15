@@ -6,6 +6,7 @@ import { buildExtensions } from './extensions'
 import { SlashCommand } from './SlashMenu'
 import { BubbleToolbar } from './BubbleToolbar'
 import { MarkdownSource } from './MarkdownSource'
+import { Toolbar } from './Toolbar'
 
 export type EditorMode = 'wysiwyg' | 'markdown'
 export type Uploader = (file: File) => Promise<{ url: string; mime_type: string; filename: string }>
@@ -22,6 +23,7 @@ interface Props {
 /** Ein Editor für beides: Lesen (editable=false) und Schreiben. Gespeichert wird immer Markdown. */
 export function Editor({ value, onChange, mode, editable, onUpload, onReady }: Props) {
   const lastEmitted = useRef(value)
+  const baseline = useRef<{ value: string; md: string }>({ value, md: value })
   const fileInput = useRef<HTMLInputElement>(null)
   const uploadRef = useRef(onUpload)
   uploadRef.current = onUpload
@@ -72,6 +74,13 @@ export function Editor({ value, onChange, mode, editable, onUpload, onReady }: P
         return true
       },
     },
+    // Vergleichsbasis ist das Markdown, wie der Editor es selbst schreibt — nicht der gespeicherte
+    // Text. Sonst zählt schon eine bloße Normalisierung (z. B. Tabellen beim ersten Klick) als
+    // Änderung und die Seite würde ungefragt gespeichert.
+    onCreate: ({ editor: e }) => {
+      lastEmitted.current = e.getMarkdown()
+      baseline.current = { value, md: lastEmitted.current }
+    },
     onUpdate: ({ editor: e }) => {
       if (!e.isEditable) return
       const md = e.getMarkdown()
@@ -95,9 +104,10 @@ export function Editor({ value, onChange, mode, editable, onUpload, onReady }: P
 
   // Inhalt von außen (anderer Modus, Versionswechsel, Konfliktlösung) übernehmen.
   useEffect(() => {
-    if (!editor || value === lastEmitted.current) return
-    lastEmitted.current = value
+    if (!editor || value === lastEmitted.current || value === baseline.current.value) return
     editor.commands.setContent(value, { contentType: 'markdown', emitUpdate: false })
+    lastEmitted.current = editor.getMarkdown()
+    baseline.current = { value, md: lastEmitted.current }
   }, [editor, value])
 
   // Datei-Auswahl aus dem Slash-Menü
@@ -132,6 +142,7 @@ export function Editor({ value, onChange, mode, editable, onUpload, onReady }: P
 
   return (
     <>
+      {editor && editable ? <Toolbar editor={editor} /> : null}
       <EditorContent editor={editor} />
       {editable ? (
         <div

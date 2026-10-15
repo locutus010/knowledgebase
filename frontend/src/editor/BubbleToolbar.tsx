@@ -69,7 +69,7 @@ export function BubbleToolbar({ editor }: { editor: Editor }) {
           {s.link ? (
             <Btn label="Link entfernen" onClick={() => editor.chain().focus().extendMarkRange('link').unsetLink().run()}><Unlink /></Btn>
           ) : (
-            <Btn label="Link (⌘K im Text)" onClick={() => { setHref(editor.getAttributes('link').href ?? ''); setLinking(true) }}><Link2 /></Btn>
+            <Btn label="Link setzen" onClick={() => { setHref(editor.getAttributes('link').href ?? ''); setLinking(true) }}><Link2 /></Btn>
           )}
         </>
       )}

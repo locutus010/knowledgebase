@@ -51,8 +51,14 @@ models.py  db.py  config.py  security.py  clock.py
   Speichern aus dem visuellen Modus als `&lt;b&gt;` geschrieben.
 - **`setEditable(x, false)`** im Editor — sonst feuert der Moduswechsel ein Update und
   speichert ungefragt.
-- **Revisionen:** dieselbe Person innerhalb 10 min überschreibt ihre letzte Revision; die
-  Erstfassung und Wiederherstellungen werden nie zusammengefasst.
+- **Revisionen: eine je Bearbeitungsrunde.** Das Frontend schickt beim Speichern eine
+  `edit_session`, die bei jedem „Bearbeiten“ neu entsteht; nur Autospeichern derselben Runde
+  und derselben Person wird zusammengefasst. Kein Zeitfenster. Ohne `edit_session` entsteht
+  pro Speichern eine Revision. Erstfassung und Wiederherstellungen werden nie zusammengefasst.
+- **`page.version` ist ein interner Zähler** für die Konflikterkennung und hat Lücken. Menschen
+  sehen `number` (fortlaufend ab 1, per `row_number()` berechnet), nie `version`.
+- **Der Editor vergleicht gegen sein eigenes Markdown** (`onCreate` setzt die Basis), nicht gegen
+  den gespeicherten Text — sonst speichert schon eine Normalisierung (Tabelle anklicken).
 - **Anhänge** liegen inhaltsadressiert (`uploads/ab/cd/<sha256>`), werden nur über die App
   mit Rechteprüfung ausgeliefert; inline nur PNG/JPEG/GIF/WebP nach Magic-Bytes, alles andere
   (auch SVG) als Download, immer mit `nosniff` und `CSP: sandbox`.
