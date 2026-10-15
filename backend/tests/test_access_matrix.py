@@ -24,6 +24,7 @@ MATRIX = {
     ("POST", "/api/v1/spaces/{slug}/pages"): {"json": {"title": "x"}},
     ("GET", "/api/v1/spaces/{slug}/trash"): {},
     ("GET", "/api/v1/spaces/{slug}/tags"): {},
+    ("GET", "/api/v1/spaces/{slug}/pages"): {"params": {"tag": "geheimtag"}},
     ("GET", "/api/v1/spaces/{slug}/export.zip"): {},
     ("POST", "/api/v1/spaces/{slug}/import"): {"files": {"file": ("a.md", b"x", "text/markdown")}},
     ("GET", "/api/v1/pages/{page_id}"): {},

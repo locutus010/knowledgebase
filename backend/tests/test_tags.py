@@ -52,3 +52,13 @@ def test_unused_tags_disappear_from_listing(ctx):
     client.put(f"/api/v1/pages/{page.id}/tags", json={"tags": ["weg"]})
     client.put(f"/api/v1/pages/{page.id}/tags", json={"tags": []})
     assert client.get(f"/api/v1/spaces/{space.slug}/tags").json() == []
+
+
+def test_pages_by_tag(ctx, db):
+    client, space, page = ctx
+    other = make_page(db, space, page.created_by, "Andere")
+    client.put(f"/api/v1/pages/{page.id}/tags", json={"tags": ["netz"]})
+    r = client.get(f"/api/v1/spaces/{space.slug}/pages", params={"tag": "netz"})
+    assert r.status_code == 200
+    assert [p["title"] for p in r.json()] == ["Seite"]
+    assert other.id

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useNavigate, useParams } from 'react-router'
+import { useLocation, useNavigate, useParams } from 'react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { Check, Code2, PenLine, Star, Type } from 'lucide-react'
@@ -45,7 +45,8 @@ function PageBody({ page }: { page: PageT }) {
   const qc = useQueryClient()
   const navigate = useNavigate()
   const editable = canEdit(page.my_level)
-  const [editing, setEditing] = useState(false)
+  const location = useLocation()
+  const [editing, setEditing] = useState(() => editable && !!(location.state as { edit?: boolean } | null)?.edit)
   const [mode, setModeState] = useState<EditorMode>(readMode)
   const [title, setTitle] = useState(page.title)
   const [icon, setIcon] = useState(page.icon)

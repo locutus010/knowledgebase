@@ -33,3 +33,11 @@ def space_tags(db: Session, space: Space) -> list[dict]:
         .group_by(Tag.name).order_by(func.count(PageTag.page_id).desc(), Tag.name)
     ).all()
     return [{"name": n, "count": c} for n, c in rows]
+
+
+def pages_with_tag(db: Session, space: Space, name: str) -> list[Page]:
+    return list(db.scalars(
+        select(Page).join(PageTag, PageTag.page_id == Page.id).join(Tag, Tag.id == PageTag.tag_id)
+        .where(Tag.space_id == space.id, Tag.name == name.strip().lower(), Page.deleted_at.is_(None))
+        .order_by(Page.updated_at.desc())
+    ))

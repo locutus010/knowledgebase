@@ -3,7 +3,7 @@
 import uuid
 from datetime import datetime
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, Field, field_validator
 
 from kb.db import DB
@@ -70,6 +70,21 @@ def put_tags(page_id: uuid.UUID, body: TagsIn, db: DB, user: User = Depends(curr
 def space_tags(slug: str, db: DB, user: User = Depends(current_user)):
     space, _ = require_space(db, user, slug)
     return tags_repo.space_tags(db, space)
+
+
+class PageListItem(BaseModel):
+    id: uuid.UUID
+    title: str
+    icon: str
+    updated_at: datetime
+
+
+@router.get("/spaces/{slug}/pages", response_model=list[PageListItem])
+def pages_by_tag(slug: str, db: DB, user: User = Depends(current_user),
+                 tag: str = Query(min_length=1, max_length=32)):
+    space, _ = require_space(db, user, slug)
+    return [PageListItem(id=p.id, title=p.title, icon=p.icon, updated_at=p.updated_at)
+            for p in tags_repo.pages_with_tag(db, space, tag)]
 
 
 @router.get("/me/home", response_model=Home)
