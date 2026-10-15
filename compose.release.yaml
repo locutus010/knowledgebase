@@ -36,7 +36,7 @@ services:
       retries: 20
 
   app:
-    image: ghcr.io/locutus010/knowledgebase-app:0.1.0
+    image: ghcr.io/locutus010/knowledgebase-app:0.2.0
     restart: unless-stopped
     depends_on:
       db:
@@ -61,7 +61,7 @@ services:
       - uploads:/data/uploads
 
   web:
-    image: ghcr.io/locutus010/knowledgebase-web:0.1.0
+    image: ghcr.io/locutus010/knowledgebase-web:0.2.0
     restart: unless-stopped
     depends_on:
       app:
@@ -79,7 +79,7 @@ services:
       - caddy_config:/config
 
   backup:
-    image: ghcr.io/locutus010/knowledgebase-backup:0.1.0
+    image: ghcr.io/locutus010/knowledgebase-backup:0.2.0
     restart: unless-stopped
     depends_on:
       db:

@@ -171,7 +171,8 @@ def test_admin_info(admin_client, db):
     space = make_space(db)
     make_page(db, space, admin_client.admin)
     body = admin_client.get("/api/v1/admin/info").json()
-    assert body["version"] == "0.1.0"
+    import kb
+    assert body["version"] == kb.__version__
     assert body["oidc_enabled"] is False
     assert body["users"] >= 1 and body["spaces"] >= 1 and body["pages"] >= 1
     assert body["upload_bytes"] >= 0

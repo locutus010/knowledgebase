@@ -52,3 +52,10 @@ def test_release_compose_requires_the_secrets():
     text = COMPOSE_RELEASE.read_text(encoding="utf-8")
     assert "${POSTGRES_PASSWORD:?" in text
     assert "${KB_SECRET_KEY:?" in text
+
+
+def test_package_version_matches_pyproject():
+    """/admin/info zeigt kb.__version__ — die muss zur gebauten Version passen."""
+    import kb
+
+    assert kb.__version__ == _version()
