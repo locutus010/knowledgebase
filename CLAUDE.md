@@ -80,6 +80,10 @@ models.py  db.py  config.py  security.py  clock.py
   sehen `number` (fortlaufend ab 1, per `row_number()` berechnet), nie `version`.
 - **Der Editor vergleicht gegen sein eigenes Markdown** (`onCreate` setzt die Basis), nicht gegen
   den gespeicherten Text — sonst speichert schon eine Normalisierung (Tabelle anklicken).
+- **`pages.attachments_text` spiegelt die Dateinamen der Anhänge** für die Suche
+  (`repo.attachments.refresh_text` nach jedem Hochladen und Löschen). Die Suche behandelt
+  Bindestriche *im* Wort wie Leerzeichen — PostgreSQL läse „Angebot-2026“ sonst als
+  „angebot“ plus Zahl „-2026“.
 - **Anhänge** liegen inhaltsadressiert (`uploads/ab/cd/<sha256>`), werden nur über die App
   mit Rechteprüfung ausgeliefert; inline nur PNG/JPEG/GIF/WebP nach Magic-Bytes, alles andere
   (auch SVG) als Download, immer mit `nosniff` und `CSP: sandbox`.

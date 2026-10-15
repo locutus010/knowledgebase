@@ -87,7 +87,7 @@ test('Ein privater Bereich: anlegen, schreiben, finden, abschotten', async ({ pa
 
   // --- Bild hochladen
   await toEnd()
-  await page.locator('input[type="file"]').setInputFiles({ name: 'bild.png', mimeType: 'image/png', buffer: PNG })
+  await page.getByTestId('editor-file-input').setInputFiles({ name: 'bild.png', mimeType: 'image/png', buffer: PNG })
   await expect(editor.locator('img[src^="/api/v1/attachments/"]')).toBeVisible()
   const attachmentUrl = await editor.locator('img').first().getAttribute('src')
 

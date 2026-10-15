@@ -158,6 +158,7 @@ export function Editor({ value, onChange, mode, editable, onUpload, onReady }: P
       {editor && editable ? <BubbleToolbar editor={editor} /> : null}
       <input
         ref={fileInput}
+        data-testid="editor-file-input"
         type="file"
         multiple
         hidden

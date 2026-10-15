@@ -13,11 +13,13 @@ import { TopBar } from '@/components/TopBar'
 import { Button } from '@/components/ui/button'
 import { Skeleton, Spinner, Tip } from '@/components/ui/misc'
 import { Editor, type EditorMode } from '@/editor/Editor'
+import type { Editor as TiptapEditor } from '@tiptap/core'
 import { EmojiPicker } from '@/components/EmojiPicker'
 import { TagEditor, TagPills } from '@/components/TagPills'
 import { TableOfContents } from '@/components/TableOfContents'
 import { ConflictDialog } from '@/components/ConflictDialog'
 import { PageMenu } from '@/components/PageMenu'
+import { AttachmentsPanel, attachmentMarkdown, attachmentsKey } from '@/components/AttachmentsPanel'
 import { NotFound } from './NotFound'
 
 type SaveState = 'saved' | 'dirty' | 'saving' | 'conflict' | 'error'
@@ -201,7 +203,24 @@ function PageBody({ page }: { page: PageT }) {
     }
   }
 
-  const uploader = async (file: File) => upload<Attachment>(`/pages/${page.id}/attachments`, file)
+  const editorRef = useRef<TiptapEditor | null>(null)
+  const uploader = async (file: File) => {
+    const att = await upload<Attachment>(`/pages/${page.id}/attachments`, file)
+    qc.invalidateQueries({ queryKey: attachmentsKey(page.id) })
+    return att
+  }
+  const insertAttachment = (a: Attachment) => {
+    const ed = editorRef.current
+    if (mode === 'wysiwyg' && ed) {
+      const node = a.mime_type.match(/^image\/(png|jpeg|gif|webp)$/)
+        ? { type: 'image', attrs: { src: a.url, alt: a.filename } }
+        : { type: 'paragraph', content: [{ type: 'text', text: a.filename, marks: [{ type: 'link', attrs: { href: a.url } }] }] }
+      ed.chain().focus().insertContent(node).run()
+    } else {
+      setContent((c) => `${c.trimEnd()}\n\n${attachmentMarkdown(a)}\n`)
+      touch()
+    }
+  }
 
   const finishEditing = async () => {
     if (state === 'dirty' || state === 'error') await save()
@@ -303,9 +322,13 @@ function PageBody({ page }: { page: PageT }) {
                 mode={editing ? mode : 'wysiwyg'}
                 editable={editing}
                 onUpload={editable ? uploader : undefined}
+                onReady={(ed) => { editorRef.current = ed }}
               />
             )}
           </div>
+
+          <AttachmentsPanel pageId={page.id} editable={editable} editing={editing} content={content}
+            onInsert={editing ? insertAttachment : undefined} />
         </article>
 
         <aside className="no-print sticky top-24 hidden h-fit w-56 shrink-0 xl:block">

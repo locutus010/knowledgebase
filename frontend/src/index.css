@@ -185,7 +185,8 @@
 .hljs-meta, .hljs-deletion { color: var(--danger); }
 
 /* Editor */
-.ProseMirror { outline: none; min-height: 40vh; }
+.ProseMirror { outline: none; }
+.ProseMirror[contenteditable='true'] { min-height: 40vh; }
 .ProseMirror p.is-editor-empty:first-child::before,
 .ProseMirror .is-empty::before { content: attr(data-placeholder); color: var(--ink-subtle); float: left; height: 0; pointer-events: none; }
 .ProseMirror .tableWrapper { overflow-x: auto; }

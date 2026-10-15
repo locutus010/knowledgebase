@@ -2,7 +2,8 @@
 
 Eine Wissensdatenbank für Teams: Seiten in farbigen Bereichen, ein Seitenbaum mit Drag & Drop,
 ein Editor, der zwischen formatiertem Schreiben und Markdown umschaltet, Volltextsuche (⌘K),
-Versionen, Anhänge, Tags, Favoriten, Vorlagen sowie Export und Import als Markdown. Personen
+Versionen, Dateianhänge an jeder Seite, Tags, Favoriten, Vorlagen sowie Export und Import als
+Markdown. Personen
 melden sich lokal oder über SSO (OpenID Connect) an; Rechte gibt es global als Rolle und je
 Bereich.
 
@@ -184,6 +185,21 @@ Zwei Dinge, die bei Entra anders laufen:
 
 Mitgliedschaften in Bereichen vergibst du weiterhin in der App — Entra liefert nur die globale
 Rolle.
+
+## Dateianhänge
+
+Unter jedem Artikel steht der Abschnitt **Anhänge**. Wer im Bereich schreiben darf, hängt dort
+Dateien an — per Knopf oder per Drag & Drop, auch ohne in den Bearbeitungsmodus zu wechseln —
+und löscht sie wieder. Lesende sehen die Liste und laden herunter. Im Bearbeitungsmodus fügt
+ein Klick eine Datei an der Cursorposition in den Text ein (Bilder als Bild, sonst als Link);
+umgekehrt erscheint alles, was im Editor eingefügt wird, auch in der Liste.
+
+- Dateinamen sind durchsuchbar: „angebot“ findet die Seite mit `Angebot-2026.pdf`.
+- Höchstgröße je Datei: `KB_MAX_UPLOAD_MB` (Vorgabe 25).
+- Nur PNG, JPEG, GIF und WebP werden im Browser angezeigt; alles andere, auch SVG, wird
+  heruntergeladen.
+- Der ZIP-Export nimmt alle Anhänge mit, auch solche, die nicht im Text vorkommen; der Import
+  hängt sie wieder an dieselbe Seite.
 
 ## Rollen und Rechte
 
