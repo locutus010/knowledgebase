@@ -2,4 +2,7 @@
 
 from fastapi import APIRouter
 
+from kb.api import auth
+
 api = APIRouter(prefix="/api/v1")
+api.include_router(auth.router)
