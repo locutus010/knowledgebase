@@ -37,3 +37,17 @@ def logged_in(app, user) -> TestClient:
     """Eigener Client mit eigenem Cookie-Speicher — für Tests mit mehreren Personen."""
     c = TestClient(app, base_url="http://testserver")
     return login(c, user)
+
+
+def make_space(db, creator=None, name="Engineering", default_access="read", color="teal",
+               members=()):
+    """members: Folge von (user, level)."""
+    n = next(_seq)
+    space = models.Space(slug=f"space-{n}", name=name, color=color, default_access=default_access,
+                         created_by=creator)
+    db.add(space)
+    db.flush()
+    for user, level in members:
+        db.add(models.SpaceMember(space_id=space.id, user_id=user.id, level=level))
+    db.flush()
+    return space
