@@ -109,3 +109,10 @@ def test_gc_removes_only_orphans(ctx, db, settings):
     assert storage.gc(db, settings.upload_dir) == 1
     sha = db.scalar(select(models.Attachment.sha256).where(models.Attachment.id == keep["id"]))
     assert storage.path_for(settings.upload_dir, sha).exists()
+
+
+def test_list_names_the_uploader(ctx):
+    client, page = ctx
+    upload(client, page, "a.png", PNG)
+    att = client.get(f"/api/v1/pages/{page.id}/attachments").json()[0]
+    assert att["uploaded_by"]["name"].startswith("Person")

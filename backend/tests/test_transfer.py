@@ -161,3 +161,21 @@ def test_trashed_pages_are_not_exported(ctx):
     z = zipfile.ZipFile(io.BytesIO(client.get(f"/api/v1/spaces/{space.slug}/export.zip").content))
     assert z.namelist() == ["Bleibt.md"]
     assert db.scalar(select(func.count()).select_from(models.Page)) >= 2
+
+
+def test_attachments_without_text_reference_survive_roundtrip(ctx):
+    client, db, user, space = ctx
+    page = make_page(db, space, user, "Vertrag", content="Siehe Anhang.")
+    client.post(f"/api/v1/pages/{page.id}/attachments", files={"file": ("vertrag.pdf", b"%PDF-1.4 x", "application/pdf")})
+    data = client.get(f"/api/v1/spaces/{space.slug}/export.zip").content
+    z = zipfile.ZipFile(io.BytesIO(data))
+    assert any(n.endswith("-vertrag.pdf") for n in z.namelist())
+    assert "attachments:" in z.read("Vertrag.md").decode()
+
+    target = make_space(db, name="Ziel2", members=[(user, "manage")])
+    r = do_import(client, target, data)
+    assert r.json()["attachments"] == 1
+    new = db.scalar(select(models.Page).where(models.Page.space_id == target.id))
+    atts = client.get(f"/api/v1/pages/{new.id}/attachments").json()
+    assert [a["filename"] for a in atts] == ["vertrag.pdf"]
+    assert new.content_md == "Siehe Anhang."

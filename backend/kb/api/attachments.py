@@ -6,8 +6,6 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, UploadFile
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
-from sqlalchemy import select
-
 from kb import storage
 from kb.config import Settings
 from kb.db import DB
@@ -15,8 +13,14 @@ from kb.deps import current_user, get_settings
 from kb.errors import AppError
 from kb.models import Attachment, User
 from kb.permissions import Level, require_page
+from kb.repo import attachments as repo
 
 router = APIRouter(tags=["attachments"])
+
+
+class Uploader(BaseModel):
+    id: uuid.UUID
+    name: str
 
 
 class AttachmentOut(BaseModel):
@@ -26,11 +30,13 @@ class AttachmentOut(BaseModel):
     size: int
     url: str
     created_at: datetime
+    uploaded_by: Uploader | None = None
 
 
-def att_out(a: Attachment) -> AttachmentOut:
+def att_out(a: Attachment, uploader: User | None = None) -> AttachmentOut:
     return AttachmentOut(id=a.id, filename=a.filename, mime_type=a.mime_type, size=a.size,
-                         url=f"/api/v1/attachments/{a.id}", created_at=a.created_at)
+                         url=f"/api/v1/attachments/{a.id}", created_at=a.created_at,
+                         uploaded_by=Uploader(id=uploader.id, name=uploader.name) if uploader else None)
 
 
 def store_upload(db, user: User, page, stream, filename: str, settings: Settings) -> Attachment:
@@ -44,6 +50,7 @@ def store_upload(db, user: User, page, stream, filename: str, settings: Settings
     db.add(att)
     db.flush()
     db.refresh(att)
+    repo.refresh_text(db, page.id)
     return att
 
 
@@ -51,15 +58,13 @@ def store_upload(db, user: User, page, stream, filename: str, settings: Settings
 def upload(page_id: uuid.UUID, file: UploadFile, db: DB, user: User = Depends(current_user),
            settings: Settings = Depends(get_settings)):
     page, _, _ = require_page(db, user, page_id, Level.EDIT)
-    return att_out(store_upload(db, user, page, file.file, file.filename or "datei", settings))
+    return att_out(store_upload(db, user, page, file.file, file.filename or "datei", settings), user)
 
 
 @router.get("/pages/{page_id}/attachments", response_model=list[AttachmentOut])
 def list_attachments(page_id: uuid.UUID, db: DB, user: User = Depends(current_user)):
     page, _, _ = require_page(db, user, page_id)
-    rows = db.scalars(select(Attachment).where(Attachment.page_id == page.id)
-                      .order_by(Attachment.created_at))
-    return [att_out(a) for a in rows]
+    return [att_out(a, u) for a, u in repo.list_for_page(db, page.id)]
 
 
 def _attachment(db, user, att_id, need) -> Attachment:
@@ -88,4 +93,6 @@ def download(att_id: uuid.UUID, db: DB, user: User = Depends(current_user),
 @router.delete("/attachments/{att_id}", status_code=204)
 def delete_attachment(att_id: uuid.UUID, db: DB, user: User = Depends(current_user)):
     att = _attachment(db, user, att_id, Level.EDIT)
+    page_id = att.page_id
     db.delete(att)
+    repo.refresh_text(db, page_id)

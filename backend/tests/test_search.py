@@ -105,3 +105,26 @@ def test_limit_bounds(ctx):
     client = ctx[0]
     assert client.get(S, params={"q": "x", "limit": 101}).status_code == 422
     assert client.get(S, params={"q": "x", "offset": -1}).status_code == 422
+
+
+def _attach(client, page, name, data=b"%PDF-1.4 inhalt"):
+    r = client.post(f"/api/v1/pages/{page.id}/attachments", files={"file": (name, data, "application/pdf")})
+    assert r.status_code == 201
+    return r.json()
+
+
+@pytest.mark.parametrize("q", ["angebot", "Angebot-2026", "angebot-2026.pdf"])
+def test_finds_page_by_attachment_filename(ctx, q):
+    client, db, user, space = ctx
+    page = make_page(db, space, user, "Vertrieb", content="Nichts Besonderes.")
+    _attach(client, page, "Angebot-2026.pdf")
+    titles = [r["title"] for r in search(client, q)["results"]]
+    assert titles == ["Vertrieb"], q
+
+
+def test_deleted_attachment_is_no_longer_found(ctx):
+    client, db, user, space = ctx
+    page = make_page(db, space, user, "Vertrieb")
+    att = _attach(client, page, "Preisliste.pdf")
+    client.delete(att["url"])
+    assert search(client, "preisliste")["total"] == 0

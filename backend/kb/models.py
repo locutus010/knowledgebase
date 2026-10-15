@@ -106,6 +106,7 @@ class SpaceMember(Base):
 _SEARCH_EXPR = (
     "setweight(to_tsvector('german'::regconfig, coalesce(title, '')), 'A') || "
     "setweight(to_tsvector('german'::regconfig, coalesce(tags_text, '')), 'B') || "
+    "setweight(to_tsvector('german'::regconfig, coalesce(attachments_text, '')), 'B') || "
     "setweight(to_tsvector('german'::regconfig, coalesce(content_md, '')), 'C')"
 )
 
@@ -124,6 +125,8 @@ class Page(Base):
     icon: Mapped[str] = mapped_column(String(16), nullable=False, default="")
     content_md: Mapped[str] = mapped_column(Text, nullable=False, default="")
     tags_text: Mapped[str] = mapped_column(Text, nullable=False, default="", server_default="")
+    # Dateinamen der Anhänge für die Volltextsuche, gepflegt von repo.attachments.refresh_text.
+    attachments_text: Mapped[str] = mapped_column(Text, nullable=False, default="", server_default="")
     position: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     created_by_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))

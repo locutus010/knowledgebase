@@ -18,7 +18,14 @@ _WORD = re.compile(r"[\w-]+")
 _MD_NOISE = r"(!?\[|\]\([^)]*\)|[#*_`>|~]+|\]|\n)"
 
 
+_INNER_HYPHEN = re.compile(r"(?<=\w)-(?=\w)")
+
+
 def _query(q: str):
+    # Bindestrich *im* Wort wie ein Leerzeichen: PostgreSQL läse „Angebot-2026“ sonst als Wort
+    # plus negative Zahl „-2026“, und die steht nie im Index. Ein „-“ am Wortanfang bleibt der
+    # Ausschluss-Operator von websearch_to_tsquery.
+    q = _INNER_HYPHEN.sub(" ", q)
     web = func.websearch_to_tsquery("german", q)
     words = _WORD.findall(q)
     if not words or q.rstrip()[-1:] in ('"', " "):

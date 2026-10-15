@@ -33,10 +33,15 @@ class ImportError_(Exception):
 
 # ---------------------------------------------------------------- Export
 
-def page_markdown(page: Page, tags: list[str], author: str | None) -> str:
+def page_markdown(page: Page, tags: list[str], author: str | None,
+                  attachments: list[str] | None = None) -> str:
     meta = {"title": page.title}
     if tags:
         meta["tags"] = tags
+    if attachments:
+        # Relative Pfade aller Anhänge der Seite — auch derer, die nirgends im Text stehen.
+        # Der Import hängt sie darüber wieder an dieselbe Seite.
+        meta["attachments"] = attachments
     meta["updated_at"] = page.updated_at.isoformat()
     if author:
         meta["author"] = author
@@ -54,6 +59,9 @@ def export_space(db: Session, space: Space, settings: Settings):
     ids = {p.id for p in pages}
     attachments = list(db.scalars(select(Attachment).where(Attachment.page_id.in_(ids)))) if ids else []
     att_path = {a.id: f"_attachments/{str(a.id)[:8]}-{storage.clean_filename(a.filename)}" for a in attachments}
+    att_by_page: dict = {}
+    for a in attachments:
+        att_by_page.setdefault(a.page_id, []).append(a)
     authors = {u.id: u.name for u in db.scalars(select(User).where(
         User.id.in_({p.updated_by_id for p in pages if p.updated_by_id})))}
 
@@ -76,7 +84,8 @@ def export_space(db: Session, space: Space, settings: Settings):
                     target = att_path.get(_uuid.UUID(m.group(1)))
                     return f"{up}{target}" if target else m.group(0)
 
-                text = page_markdown(p, pages_repo.tag_names(db, p), authors.get(p.updated_by_id))
+                own = [f"{up}{att_path[a.id]}" for a in att_by_page.get(p.id, [])]
+                text = page_markdown(p, pages_repo.tag_names(db, p), authors.get(p.updated_by_id), own)
                 z.writestr(path, ATTACHMENT_URL.sub(relink, text))
                 if children:
                     walk(p.id, f"{folder}{name}/")
@@ -97,6 +106,16 @@ class Report:
     pages: int = 0
     attachments: int = 0
     skipped: list[str] = field(default_factory=list)
+
+
+_EXPORT_PREFIX = re.compile(r"^[0-9a-f]{8}-(.+)$")
+
+
+def _original_name(asset_name: str) -> str:
+    """Der Export legt Anhänge als _attachments/<id8>-<name> ab; beim Import zählt <name>."""
+    name = posixpath.basename(asset_name)
+    m = _EXPORT_PREFIX.match(name)
+    return m.group(1) if m and asset_name.startswith("_attachments/") else name
 
 
 def _ext(name: str) -> str:
@@ -193,7 +212,7 @@ def _import_files(db, user, space, md: dict[str, bytes], assets: dict, settings,
                 from kb.api.attachments import store_upload
                 z, info = assets[asset_name]
                 data = _read(z, info, budget)
-                att = store_upload(db, user, page, io.BytesIO(data), posixpath.basename(asset_name), settings)
+                att = store_upload(db, user, page, io.BytesIO(data), _original_name(asset_name), settings)
                 uploaded[asset_name] = f"/api/v1/attachments/{att.id}"
                 report.attachments += 1
             return uploaded[asset_name]
@@ -214,6 +233,11 @@ def _import_files(db, user, space, md: dict[str, bytes], assets: dict, settings,
 
         body = _WIKI_EMBED.sub(wiki, _LINK.sub(link, body))
         page.content_md = body
+        listed = meta.get("attachments")
+        if isinstance(listed, list):
+            for rel in listed:
+                if isinstance(rel, str) and is_safe_path(rel.lstrip("./") or "x"):
+                    upload(posixpath.normpath(posixpath.join(base_dir, rel)))
         tags = meta.get("tags")
         if isinstance(tags, str):
             tags = [tags]
