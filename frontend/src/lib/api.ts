@@ -23,6 +23,7 @@ function messageOf(data: unknown, status: number): string {
     return detail.map((d: { feld?: string; meldung?: string }) => d.meldung ?? 'Ungültige Eingabe').join(' ')
   }
   if (status === 0) return 'Keine Verbindung zum Server.'
+  if (status === 413) return 'Die Datei ist zu groß.'
   return `Unerwarteter Fehler (${status}).`
 }
 

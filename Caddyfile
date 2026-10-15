@@ -1,0 +1,49 @@
+{
+	admin off
+}
+
+# Ohne KB_DOMAIN: nur HTTP auf Port 80 im Container (lokal oder hinter einem eigenen Proxy).
+# Mit KB_DOMAIN: Caddy holt ein Let's-Encrypt-Zertifikat und leitet HTTP auf HTTPS um.
+{$KB_SITE_ADDRESS::80} {
+	encode zstd gzip
+
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy same-origin
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), interest-cohort=()"
+		X-Frame-Options DENY
+		-Server
+	}
+
+	@https protocol https
+	header @https Strict-Transport-Security "max-age=31536000"
+
+	# Eigener Healthcheck für den Container, ohne die App zu bemühen.
+	respond /healthz 200
+
+	@import path_regexp ^/api/v1/spaces/[^/]+/import$
+	handle @import {
+		request_body {
+			max_size 210MB
+		}
+		reverse_proxy app:8000
+	}
+
+	handle /api/* {
+		request_body {
+			max_size {$KB_MAX_UPLOAD_MB:25}MB
+		}
+		reverse_proxy app:8000
+	}
+
+	handle {
+		root * /srv
+		header Content-Security-Policy "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self'; font-src 'self'; connect-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+		@assets path /assets/*
+		header @assets Cache-Control "public, max-age=31536000, immutable"
+		@html not path /assets/*
+		header @html Cache-Control "no-cache"
+		try_files {path} /index.html
+		file_server
+	}
+}
