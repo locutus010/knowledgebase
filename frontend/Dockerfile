@@ -1,5 +1,7 @@
 # Kontext ist knowledgebase/ (siehe compose.yaml), damit das Caddyfile mitkommt.
-FROM node:22-alpine AS build
+# Das Bauen der Oberfläche liefert plattformunabhängige Dateien — also immer auf der
+# Build-Plattform, nie unter arm64-Emulation (das wäre um ein Vielfaches langsamer).
+FROM --platform=$BUILDPLATFORM node:22-alpine AS build
 WORKDIR /src
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci --no-audit --no-fund

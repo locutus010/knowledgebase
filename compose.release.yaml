@@ -1,0 +1,103 @@
+# Wissensdatenbank aus fertigen Images — für Portainer und jeden Host, der nicht selbst baut.
+#
+# Unterschied zur 'compose.yaml': die baut aus dem Quellbaum und ist für die Entwicklung.
+# Diese hier zieht die veröffentlichten Images von ghcr.io und braucht keinen Quellcode auf
+# dem Host — genau das, was ein Portainer-Stack aus dem Web-Editor kann.
+#
+# Ausschließlich Named Volumes: ein Portainer-Stack hat kein sinnvolles Arbeitsverzeichnis,
+# ein relativer Pfad landete irgendwo unter /data/compose/<id>/.
+#
+# Feste Versionen statt 'latest': ein Stack, der beim nächsten Repull unangekündigt eine neue
+# Version zieht, ist keine Ablage für das Wissen eines Teams. Zum Aktualisieren alle drei
+# Marken hochsetzen und den Stack neu ausrollen; Migrationen laufen beim Start der App selbst.
+#
+# Mindestens zu setzen (Portainer: "Environment variables" des Stacks, sonst eine .env):
+#   POSTGRES_PASSWORD   nur Buchstaben und Ziffern, z. B. openssl rand -hex 24
+#   KB_SECRET_KEY       mindestens 32 Zeichen, z. B. openssl rand -hex 32
+# Alle weiteren Variablen: siehe .env.example und README.
+
+name: wissensdatenbank
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: kb
+      POSTGRES_DB: kb
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD fehlt - nur Buchstaben und Ziffern, z. B. openssl rand -hex 24}
+      TZ: ${TZ:-Europe/Berlin}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kb -d kb"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  app:
+    image: ghcr.io/locutus010/knowledgebase-app:0.1.0
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      KB_DATABASE_URL: postgresql+psycopg://kb:${POSTGRES_PASSWORD}@db:5432/kb
+      KB_SECRET_KEY: ${KB_SECRET_KEY:?KB_SECRET_KEY fehlt - mindestens 32 Zeichen, z. B. openssl rand -hex 32}
+      KB_DOMAIN: ${KB_DOMAIN:-}
+      KB_MAX_UPLOAD_MB: ${KB_MAX_UPLOAD_MB:-25}
+      KB_OIDC_ISSUER: ${KB_OIDC_ISSUER:-}
+      KB_OIDC_CLIENT_ID: ${KB_OIDC_CLIENT_ID:-}
+      KB_OIDC_CLIENT_SECRET: ${KB_OIDC_CLIENT_SECRET:-}
+      KB_OIDC_BUTTON_LABEL: ${KB_OIDC_BUTTON_LABEL:-SSO}
+      KB_OIDC_GROUPS_CLAIM: ${KB_OIDC_GROUPS_CLAIM:-groups}
+      KB_OIDC_ADMIN_GROUPS: ${KB_OIDC_ADMIN_GROUPS:-}
+      KB_OIDC_EDITOR_GROUPS: ${KB_OIDC_EDITOR_GROUPS:-}
+      KB_OIDC_DEFAULT_ROLE: ${KB_OIDC_DEFAULT_ROLE:-reader}
+      KB_BOOTSTRAP_ADMIN_EMAIL: ${KB_BOOTSTRAP_ADMIN_EMAIL:-}
+      KB_BOOTSTRAP_ADMIN_PASSWORD: ${KB_BOOTSTRAP_ADMIN_PASSWORD:-}
+      TZ: ${TZ:-Europe/Berlin}
+    volumes:
+      - uploads:/data/uploads
+
+  web:
+    image: ghcr.io/locutus010/knowledgebase-web:0.1.0
+    restart: unless-stopped
+    depends_on:
+      app:
+        condition: service_healthy
+    environment:
+      KB_SITE_ADDRESS: ${KB_DOMAIN:-:80}
+      KB_MAX_UPLOAD_MB: ${KB_MAX_UPLOAD_MB:-25}
+    ports:
+      # Vorgabe: nur vom Host selbst erreichbar. Fürs LAN KB_BIND=0.0.0.0; mit eigener Domain
+      # zusätzlich KB_HTTP_PORT=80 und KB_HTTPS_PORT=443 — dann holt Caddy das Zertifikat.
+      - "${KB_BIND:-127.0.0.1}:${KB_HTTP_PORT:-8080}:80"
+      - "${KB_BIND:-127.0.0.1}:${KB_HTTPS_PORT:-8443}:443"
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+
+  backup:
+    image: ghcr.io/locutus010/knowledgebase-backup:0.1.0
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      POSTGRES_USER: kb
+      POSTGRES_DB: kb
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      KB_BACKUP_KEEP_DAYS: ${KB_BACKUP_KEEP_DAYS:-14}
+      KB_BACKUP_TIME: ${KB_BACKUP_TIME:-02:30}
+      TZ: ${TZ:-Europe/Berlin}
+    volumes:
+      - uploads:/uploads
+      - backups:/backups
+
+volumes:
+  pgdata:
+  uploads:
+  backups:
+  caddy_data:
+  caddy_config:

@@ -40,6 +40,43 @@ docker compose exec app python -m kb create-admin --email du@firma.de --name "De
 
 Danach ist die Oberfläche unter <http://localhost:8080> erreichbar.
 
+## Betrieb aus fertigen Images (Portainer)
+
+Für Hosts ohne Quellcode gibt es `compose.release.yaml`. Sie zieht die fertigen Images aus der
+GitHub Container Registry (amd64 und arm64) und legt alle Daten in Docker-Volumes:
+
+| Image | Inhalt |
+|---|---|
+| `ghcr.io/locutus010/knowledgebase-app` | Backend |
+| `ghcr.io/locutus010/knowledgebase-web` | Caddy mit der Oberfläche |
+| `ghcr.io/locutus010/knowledgebase-backup` | tägliche Sicherung, `kb-restore` |
+
+In Portainer: *Stacks → Add stack → Web editor*, den Inhalt von `compose.release.yaml`
+einfügen und unter *Environment variables* mindestens `POSTGRES_PASSWORD` und
+`KB_SECRET_KEY` setzen (Werte wie im Schnellstart). Alle weiteren Variablen aus
+`.env.example` gehen dort genauso. Den ersten Administrator legst du entweder über
+`KB_BOOTSTRAP_ADMIN_EMAIL`/`KB_BOOTSTRAP_ADMIN_PASSWORD` an oder in der Konsole des
+Containers `app`:
+
+```bash
+python -m kb create-admin --email du@firma.de --name "Dein Name"
+```
+
+Ohne Portainer, mit einer `.env` daneben:
+
+```bash
+docker compose -f compose.release.yaml up -d --wait
+```
+
+Die Images sind auf eine Version festgelegt. Zum Aktualisieren die drei Marken in
+`compose.release.yaml` hochsetzen (oder die neue Fassung der Datei nehmen) und den Stack neu
+ausrollen; Migrationen laufen beim Start selbst.
+
+Neue Images entstehen, sobald im GitHub-Repo eine Release veröffentlicht wird
+(`.github/workflows/release.yml`): erst laufen alle Tests, dann werden die drei Images mit den
+Marken `x.y.z`, `x.y` und `latest` gebaut. Version vorher in `backend/pyproject.toml`,
+`frontend/package.json` und `compose.release.yaml` gleich hochsetzen — ein Test prüft das.
+
 ## Mit eigener Domain und HTTPS
 
 DNS-Eintrag der Domain auf den Server zeigen lassen, dann in `.env`:
