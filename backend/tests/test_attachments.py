@@ -116,3 +116,14 @@ def test_list_names_the_uploader(ctx):
     upload(client, page, "a.png", PNG)
     att = client.get(f"/api/v1/pages/{page.id}/attachments").json()[0]
     assert att["uploaded_by"]["name"].startswith("Person")
+
+
+def test_inline_upload_is_not_listed_but_downloadable(ctx):
+    client, page = ctx
+    inline = client.post(f"/api/v1/pages/{page.id}/attachments?listed=false",
+                         files={"file": ("im-text.png", PNG, "image/png")}).json()
+    upload(client, page, "anhang.png", PNG)
+    names = [a["filename"] for a in client.get(f"/api/v1/pages/{page.id}/attachments").json()]
+    assert names == ["anhang.png"]
+    assert inline["listed"] is False
+    assert client.get(inline["url"]).status_code == 200

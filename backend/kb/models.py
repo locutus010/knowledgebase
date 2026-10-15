@@ -214,6 +214,9 @@ class Attachment(Base):
     mime_type: Mapped[str] = mapped_column(String(127), nullable=False)
     size: Mapped[int] = mapped_column(BigInteger, nullable=False)
     uploaded_by_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    # True: über den Abschnitt „Anhänge“ hinzugefügt und dort gelistet. False: im Editor
+    # eingefügt — gehört nur zum Text, erscheint weder in der Liste noch in der Dateisuche.
+    listed: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="true")
     created_at: Mapped[datetime] = _now()
 
 

@@ -19,7 +19,7 @@ import { TagEditor, TagPills } from '@/components/TagPills'
 import { TableOfContents } from '@/components/TableOfContents'
 import { ConflictDialog } from '@/components/ConflictDialog'
 import { PageMenu } from '@/components/PageMenu'
-import { AttachmentsPanel, attachmentMarkdown, attachmentsKey } from '@/components/AttachmentsPanel'
+import { AttachmentsPanel, attachmentMarkdown } from '@/components/AttachmentsPanel'
 import { NotFound } from './NotFound'
 
 type SaveState = 'saved' | 'dirty' | 'saving' | 'conflict' | 'error'
@@ -204,11 +204,8 @@ function PageBody({ page }: { page: PageT }) {
   }
 
   const editorRef = useRef<TiptapEditor | null>(null)
-  const uploader = async (file: File) => {
-    const att = await upload<Attachment>(`/pages/${page.id}/attachments`, file)
-    qc.invalidateQueries({ queryKey: attachmentsKey(page.id) })
-    return att
-  }
+  // Im Editor eingefügte Dateien gehören nur zum Text — nicht in den Abschnitt „Anhänge“.
+  const uploader = (file: File) => upload<Attachment>(`/pages/${page.id}/attachments?listed=false`, file)
   const insertAttachment = (a: Attachment) => {
     const ed = editorRef.current
     if (mode === 'wysiwyg' && ed) {

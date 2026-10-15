@@ -80,7 +80,11 @@ models.py  db.py  config.py  security.py  clock.py
   sehen `number` (fortlaufend ab 1, per `row_number()` berechnet), nie `version`.
 - **Der Editor vergleicht gegen sein eigenes Markdown** (`onCreate` setzt die Basis), nicht gegen
   den gespeicherten Text — sonst speichert schon eine Normalisierung (Tabelle anklicken).
-- **`pages.attachments_text` spiegelt die Dateinamen der Anhänge** für die Suche
+- **`attachments.listed`:** `true` = über den Abschnitt „Anhänge“ hinzugefügt (dort gelistet,
+  per Dateiname suchbar, im Export-Front-Matter). `false` = im Editor eingefügt (`?listed=false`),
+  gehört nur zum Text. Der Import liest zuerst die gelisteten aus dem Front-Matter, dann die
+  Links im Text — sonst würde ein gelisteter Anhang, der auch im Text steht, zu „nur im Text“.
+- **`pages.attachments_text` spiegelt die Dateinamen der gelisteten Anhänge** für die Suche
   (`repo.attachments.refresh_text` nach jedem Hochladen und Löschen). Die Suche behandelt
   Bindestriche *im* Wort wie Leerzeichen — PostgreSQL läse „Angebot-2026“ sonst als
   „angebot“ plus Zahl „-2026“.

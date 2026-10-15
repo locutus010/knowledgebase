@@ -30,23 +30,25 @@ class AttachmentOut(BaseModel):
     size: int
     url: str
     created_at: datetime
+    listed: bool
     uploaded_by: Uploader | None = None
 
 
 def att_out(a: Attachment, uploader: User | None = None) -> AttachmentOut:
     return AttachmentOut(id=a.id, filename=a.filename, mime_type=a.mime_type, size=a.size,
-                         url=f"/api/v1/attachments/{a.id}", created_at=a.created_at,
+                         url=f"/api/v1/attachments/{a.id}", created_at=a.created_at, listed=a.listed,
                          uploaded_by=Uploader(id=uploader.id, name=uploader.name) if uploader else None)
 
 
-def store_upload(db, user: User, page, stream, filename: str, settings: Settings) -> Attachment:
+def store_upload(db, user: User, page, stream, filename: str, settings: Settings,
+                 listed: bool = True) -> Attachment:
     try:
         sha, size, head = storage.put(stream, settings.upload_dir, settings.max_upload_bytes)
     except storage.TooLarge:
         raise AppError(413, f"Die Datei ist größer als {settings.max_upload_mb} MB.") from None
     name = storage.clean_filename(filename)
     att = Attachment(page_id=page.id, sha256=sha, filename=name, mime_type=storage.sniff(head, name),
-                     size=size, uploaded_by_id=user.id)
+                     size=size, uploaded_by_id=user.id, listed=listed)
     db.add(att)
     db.flush()
     db.refresh(att)
@@ -56,9 +58,11 @@ def store_upload(db, user: User, page, stream, filename: str, settings: Settings
 
 @router.post("/pages/{page_id}/attachments", status_code=201, response_model=AttachmentOut)
 def upload(page_id: uuid.UUID, file: UploadFile, db: DB, user: User = Depends(current_user),
-           settings: Settings = Depends(get_settings)):
+           settings: Settings = Depends(get_settings), listed: bool = True):
+    """listed=false für Dateien, die der Editor in den Text einfügt — sie gehören nur dorthin."""
     page, _, _ = require_page(db, user, page_id, Level.EDIT)
-    return att_out(store_upload(db, user, page, file.file, file.filename or "datei", settings), user)
+    att = store_upload(db, user, page, file.file, file.filename or "datei", settings, listed=listed)
+    return att_out(att, user)
 
 
 @router.get("/pages/{page_id}/attachments", response_model=list[AttachmentOut])

@@ -179,3 +179,18 @@ def test_attachments_without_text_reference_survive_roundtrip(ctx):
     atts = client.get(f"/api/v1/pages/{new.id}/attachments").json()
     assert [a["filename"] for a in atts] == ["vertrag.pdf"]
     assert new.content_md == "Siehe Anhang."
+
+
+def test_roundtrip_keeps_listed_and_inline_apart(ctx):
+    client, db, user, space = ctx
+    page = make_page(db, space, user, "Mix")
+    listed = client.post(f"/api/v1/pages/{page.id}/attachments", files={"file": ("liste.pdf", b"%PDF-1.4 a", "application/pdf")}).json()
+    inline = client.post(f"/api/v1/pages/{page.id}/attachments?listed=false", files={"file": ("bild.png", PNG, "image/png")}).json()
+    page.content_md = f"![bild]({inline['url']}) und [Liste]({listed['url']})"
+    db.flush()
+    data = client.get(f"/api/v1/spaces/{space.slug}/export.zip").content
+    target = make_space(db, name="Ziel3", members=[(user, "manage")])
+    assert do_import(client, target, data).status_code == 200
+    new = db.scalar(select(models.Page).where(models.Page.space_id == target.id))
+    assert [a["filename"] for a in client.get(f"/api/v1/pages/{new.id}/attachments").json()] == ["liste.pdf"]
+    assert new.content_md.count("/api/v1/attachments/") == 2

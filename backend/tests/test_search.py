@@ -128,3 +128,11 @@ def test_deleted_attachment_is_no_longer_found(ctx):
     att = _attach(client, page, "Preisliste.pdf")
     client.delete(att["url"])
     assert search(client, "preisliste")["total"] == 0
+
+
+def test_inline_files_are_not_searchable_by_name(ctx):
+    client, db, user, space = ctx
+    page = make_page(db, space, user, "Bildseite")
+    client.post(f"/api/v1/pages/{page.id}/attachments?listed=false",
+                files={"file": ("diagrammxyz.png", b"\x89PNG\r\n\x1a\n" + b"\0" * 8, "image/png")})
+    assert search(client, "diagrammxyz")["total"] == 0

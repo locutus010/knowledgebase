@@ -84,7 +84,7 @@ def export_space(db: Session, space: Space, settings: Settings):
                     target = att_path.get(_uuid.UUID(m.group(1)))
                     return f"{up}{target}" if target else m.group(0)
 
-                own = [f"{up}{att_path[a.id]}" for a in att_by_page.get(p.id, [])]
+                own = [f"{up}{att_path[a.id]}" for a in att_by_page.get(p.id, []) if a.listed]
                 text = page_markdown(p, pages_repo.tag_names(db, p), authors.get(p.updated_by_id), own)
                 z.writestr(path, ATTACHMENT_URL.sub(relink, text))
                 if children:
@@ -205,19 +205,25 @@ def _import_files(db, user, space, md: dict[str, bytes], assets: dict, settings,
         created[key] = page
         report.pages += 1
 
-        def upload(asset_name: str, page=page) -> str | None:
+        def upload(asset_name: str, page=page, listed: bool = False) -> str | None:
             if asset_name not in assets:
                 return None
             if asset_name not in uploaded:
                 from kb.api.attachments import store_upload
                 z, info = assets[asset_name]
                 data = _read(z, info, budget)
-                att = store_upload(db, user, page, io.BytesIO(data), _original_name(asset_name), settings)
+                att = store_upload(db, user, page, io.BytesIO(data), _original_name(asset_name), settings,
+                                   listed=listed)
                 uploaded[asset_name] = f"/api/v1/attachments/{att.id}"
                 report.attachments += 1
             return uploaded[asset_name]
 
         base_dir = node.get("dir", "")
+        listed_paths = meta.get("attachments")
+        if isinstance(listed_paths, list):
+            for rel in listed_paths:
+                if isinstance(rel, str) and is_safe_path(rel.lstrip("./") or "x"):
+                    upload(posixpath.normpath(posixpath.join(base_dir, rel)), listed=True)
 
         def link(m):
             bang, label, target = m.groups()
@@ -233,11 +239,6 @@ def _import_files(db, user, space, md: dict[str, bytes], assets: dict, settings,
 
         body = _WIKI_EMBED.sub(wiki, _LINK.sub(link, body))
         page.content_md = body
-        listed = meta.get("attachments")
-        if isinstance(listed, list):
-            for rel in listed:
-                if isinstance(rel, str) and is_safe_path(rel.lstrip("./") or "x"):
-                    upload(posixpath.normpath(posixpath.join(base_dir, rel)))
         tags = meta.get("tags")
         if isinstance(tags, str):
             tags = [tags]

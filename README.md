@@ -191,10 +191,12 @@ Rolle.
 Unter jedem Artikel steht der Abschnitt **Anhänge**. Wer im Bereich schreiben darf, hängt dort
 Dateien an — per Knopf oder per Drag & Drop, auch ohne in den Bearbeitungsmodus zu wechseln —
 und löscht sie wieder. Lesende sehen die Liste und laden herunter. Im Bearbeitungsmodus fügt
-ein Klick eine Datei an der Cursorposition in den Text ein (Bilder als Bild, sonst als Link);
-umgekehrt erscheint alles, was im Editor eingefügt wird, auch in der Liste.
+ein Klick eine Datei an der Cursorposition in den Text ein (Bilder als Bild, sonst als Link).
+Bilder und Dateien, die du direkt im Editor einfügst (Toolbar, `/`-Menü, Ziehen oder Einfügen),
+gehören nur zum Text und erscheinen nicht unter „Anhänge“.
 
-- Dateinamen sind durchsuchbar: „angebot“ findet die Seite mit `Angebot-2026.pdf`.
+- Die Dateinamen der Anhänge sind durchsuchbar: „angebot“ findet die Seite mit
+  `Angebot-2026.pdf`. Nur im Text eingefügte Dateien zählen nicht dazu.
 - Höchstgröße je Datei: `KB_MAX_UPLOAD_MB` (Vorgabe 25).
 - Nur PNG, JPEG, GIF und WebP werden im Browser angezeigt; alles andere, auch SVG, wird
   heruntergeladen.

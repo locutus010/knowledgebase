@@ -116,6 +116,7 @@ export interface Attachment {
   size: number
   url: string
   created_at: string
+  listed: boolean
   uploaded_by: PersonRef | null
 }
 

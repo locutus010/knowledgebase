@@ -69,6 +69,13 @@ test('Dateien an eine Seite hängen, finden, lesen und löschen', async ({ page,
   await expect.poll(async () => (await (await page.request.get(`/api/v1/pages/${pg.id}`)).json()).content_md, { timeout: 15_000 })
     .toContain('![skizze.png](/api/v1/attachments/')
 
+  // Was der Editor selbst hochlädt, bleibt im Text und erscheint nicht unter „Anhänge“.
+  await page.getByTestId('editor-end').click()
+  await page.getByTestId('editor-file-input').setInputFiles({ name: 'nur-im-text.png', mimeType: 'image/png', buffer: PNG })
+  await expect(page.locator('.ProseMirror img[alt="nur-im-text.png"]')).toBeVisible()
+  await expect(list.getByRole('listitem')).toHaveCount(2)
+  await expect(list.getByText('nur-im-text.png')).toHaveCount(0)
+
   await list.getByRole('button', { name: 'skizze.png löschen' }).click()
   await expect(page.getByRole('alertdialog')).toContainText('im Text verwendet')
   await page.getByRole('alertdialog').getByRole('button', { name: 'Löschen' }).click()

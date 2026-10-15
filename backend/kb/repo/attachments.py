@@ -11,7 +11,8 @@ from kb.models import Attachment, Page, User
 
 def list_for_page(db: Session, page_id: uuid.UUID) -> list[tuple[Attachment, User | None]]:
     rows = db.execute(select(Attachment, User).outerjoin(User, User.id == Attachment.uploaded_by_id)
-                      .where(Attachment.page_id == page_id).order_by(Attachment.created_at))
+                      .where(Attachment.page_id == page_id, Attachment.listed.is_(True))
+                      .order_by(Attachment.created_at))
     return [(a, u) for a, u in rows]
 
 
@@ -23,6 +24,7 @@ def search_text(filenames: list[str]) -> str:
 
 def refresh_text(db: Session, page_id: uuid.UUID) -> None:
     db.flush()
-    names = list(db.scalars(select(Attachment.filename).where(Attachment.page_id == page_id)
+    names = list(db.scalars(select(Attachment.filename)
+                            .where(Attachment.page_id == page_id, Attachment.listed.is_(True))
                             .order_by(Attachment.created_at)))
     db.execute(update(Page).where(Page.id == page_id).values(attachments_text=search_text(names)))
