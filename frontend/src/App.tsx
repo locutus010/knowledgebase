@@ -10,6 +10,9 @@ import Trash from '@/pages/Trash'
 import PageView from '@/pages/Page'
 import Revisions from '@/pages/Revisions'
 import Search from '@/pages/Search'
+import SpaceSettings from '@/pages/SpaceSettings'
+import Admin from '@/pages/Admin'
+import Profile from '@/pages/Profile'
 import NotFoundPage from '@/pages/NotFound'
 
 export default function App() {
@@ -23,6 +26,9 @@ export default function App() {
         <Route path="/s/:slug" element={<SpacePage />} />
         <Route path="/s/:slug/new" element={<NewPage />} />
         <Route path="/s/:slug/trash" element={<Trash />} />
+        <Route path="/s/:slug/settings" element={<SpaceSettings />} />
+        <Route path="/admin" element={<Admin />} />
+        <Route path="/profile" element={<Profile />} />
         <Route path="/p/:pageId" element={<PageView />} />
         <Route path="/p/:pageId/history" element={<Revisions />} />
         <Route path="*" element={<NotFoundPage />} />

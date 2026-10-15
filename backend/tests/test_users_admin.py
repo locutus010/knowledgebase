@@ -164,3 +164,19 @@ def test_concurrent_demotion_keeps_one_admin(committing_engine):
             assert left == 1
             s.query(models.User).filter(models.User.id.in_(ids)).delete()
             s.commit()
+
+
+def test_admin_info(admin_client, db):
+    from tests.factories import make_page, make_space
+    space = make_space(db)
+    make_page(db, space, admin_client.admin)
+    body = admin_client.get("/api/v1/admin/info").json()
+    assert body["version"] == "0.1.0"
+    assert body["oidc_enabled"] is False
+    assert body["users"] >= 1 and body["spaces"] >= 1 and body["pages"] >= 1
+    assert body["upload_bytes"] >= 0
+
+
+def test_admin_info_forbidden_for_others(client, db):
+    login(client, make_user(db, role="editor"))
+    assert client.get("/api/v1/admin/info").status_code == 403

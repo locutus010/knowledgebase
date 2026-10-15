@@ -8,7 +8,8 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 
 from kb.db import DB
-from kb.deps import require_admin
+from kb.config import Settings
+from kb.deps import get_settings, require_admin
 from kb.errors import AppError
 from kb.models import User
 from kb.repo import users as repo
@@ -52,6 +53,20 @@ def admin_user_out(u: User) -> AdminUserOut:
                         is_local=u.password_hash is not None, is_sso=u.oidc_subject is not None,
                         avatar_color=u.avatar_color, created_at=u.created_at,
                         last_login_at=u.last_login_at)
+
+
+admin_router = APIRouter(prefix="/admin", tags=["users"], dependencies=[Depends(require_admin)])
+
+
+@admin_router.get("/info")
+def info(db: DB, settings: Settings = Depends(get_settings)):
+    from kb import __version__
+
+    counts = repo.counts(db)
+    upload_bytes = sum(f.stat().st_size for f in settings.upload_dir.glob("??/??/*") if f.is_file()) \
+        if settings.upload_dir.exists() else 0
+    return {"version": __version__, "oidc_enabled": settings.oidc_enabled,
+            "oidc_issuer": settings.oidc_issuer, **counts, "upload_bytes": upload_bytes}
 
 
 @router.get("", response_model=list[AdminUserOut])

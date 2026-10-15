@@ -1,7 +1,9 @@
 """Lokale Anmeldung, Sitzung, Passwortwechsel."""
 
 from fastapi import APIRouter, Depends, Request, Response
-from pydantic import BaseModel, Field
+from typing import Literal
+
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy.orm import Session
 
 from kb.config import Settings
@@ -24,6 +26,18 @@ class LoginIn(BaseModel):
 class PasswordIn(BaseModel):
     current: str = Field(default="", max_length=1024)
     new: str = Field(min_length=MIN_PASSWORD_LEN, max_length=1024)
+
+
+class ProfileIn(BaseModel):
+    name: str | None = Field(default=None, max_length=120)
+    avatar_color: Literal["teal", "indigo", "violet", "rose", "orange", "amber", "green", "slate"] | None = None
+
+    @field_validator("name")
+    @classmethod
+    def _name(cls, v):
+        if v is not None and not v.strip():
+            raise ValueError("Der Name darf nicht leer sein.")
+        return v.strip() if v else v
 
 
 class UserOut(BaseModel):
@@ -81,6 +95,15 @@ def logout(response: Response, db: DB, auth: Auth = Depends(current_auth)):
 @router.get("/me", response_model=MeOut)
 def me(auth: Auth = Depends(current_auth)):
     return MeOut(user=user_out(auth.user), csrf_token=auth.session.csrf_token)
+
+
+@router.patch("/me", response_model=UserOut)
+def update_me(body: ProfileIn, user: User = Depends(current_user)):
+    if body.name is not None:
+        user.name = body.name
+    if body.avatar_color is not None:
+        user.avatar_color = body.avatar_color
+    return user_out(user)
 
 
 @router.post("/password", status_code=204)

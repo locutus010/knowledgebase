@@ -122,3 +122,13 @@ def delete_user(db: Session, user_id: uuid.UUID) -> bool:
     db.delete(user)
     db.flush()
     return True
+
+
+def counts(db: Session) -> dict:
+    from kb.models import Page, Space
+
+    return {
+        "users": db.scalar(select(func.count()).select_from(User)),
+        "spaces": db.scalar(select(func.count()).select_from(Space)),
+        "pages": db.scalar(select(func.count()).select_from(Page).where(Page.deleted_at.is_(None))),
+    }

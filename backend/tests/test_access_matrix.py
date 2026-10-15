@@ -51,7 +51,7 @@ MATRIX = {
 # Routen ohne Bezug zu einem einzelnen Bereich; die Listen darunter prüft test_lists_leak_nothing.
 EXEMPT = {
     ("POST", "/api/v1/auth/login"), ("POST", "/api/v1/auth/logout"), ("GET", "/api/v1/auth/me"),
-    ("POST", "/api/v1/auth/password"), ("GET", "/api/v1/auth/config"),
+    ("POST", "/api/v1/auth/password"), ("GET", "/api/v1/auth/config"), ("PATCH", "/api/v1/auth/me"),
     ("GET", "/api/v1/auth/oidc/login"), ("GET", "/api/v1/auth/oidc/callback"),
     ("GET", "/api/v1/users"), ("POST", "/api/v1/users"), ("PATCH", "/api/v1/users/{user_id}"),
     ("DELETE", "/api/v1/users/{user_id}"), ("POST", "/api/v1/users/{user_id}/reset-password"),

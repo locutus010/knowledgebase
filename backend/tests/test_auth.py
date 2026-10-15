@@ -146,3 +146,18 @@ def test_foreign_origin_is_rejected_when_domain_is_set(app, client, db):
 
 def test_auth_config_reports_oidc(client):
     assert client.get("/api/v1/auth/config").json() == {"oidc_enabled": False, "oidc_label": "SSO"}
+
+
+def test_update_own_profile(client, db):
+    user = make_user(db, name="Alt")
+    login(client, user)
+    r = client.patch("/api/v1/auth/me", json={"name": "  Neu  ", "avatar_color": "violet"})
+    assert r.status_code == 200
+    assert r.json()["name"] == "Neu"
+    assert r.json()["avatar_color"] == "violet"
+
+
+def test_profile_rejects_unknown_color_and_empty_name(client, db):
+    login(client, make_user(db))
+    assert client.patch("/api/v1/auth/me", json={"avatar_color": "pink"}).status_code == 422
+    assert client.patch("/api/v1/auth/me", json={"name": " "}).status_code == 422
