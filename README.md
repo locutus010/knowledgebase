@@ -81,6 +81,73 @@ jeder Anmeldung aus den Gruppen; sind beide Gruppenlisten leer, vergibst du Roll
 Ein bestehendes lokales Konto mit derselben E-Mail wird nur verknüpft, wenn der Provider die
 Adresse als bestätigt meldet.
 
+## Microsoft Entra ID
+
+Die Anbindung läuft über dieselben `KB_OIDC_*`-Variablen. Gegen einen echten Entra-Mandanten
+ist sie nicht automatisch getestet — die Tests nutzen einen nachgebauten Provider.
+
+**App registrieren** im Entra Admin Center unter *App-Registrierungen → Neue Registrierung*:
+
+- Unterstützte Kontotypen: *Nur Konten in diesem Organisationsverzeichnis*
+- Umleitungs-URI, Plattform **Web**: `https://wiki.firma.de/api/v1/auth/oidc/callback`
+  (zum Testen geht `http://localhost:8080/api/v1/auth/oidc/callback`; `http` erlaubt Entra nur
+  für localhost)
+
+Danach in der App:
+
+- *Übersicht*: **Anwendungs-ID (Client-ID)** und **Verzeichnis-ID (Mandanten-ID)** notieren.
+- *Zertifikate & Geheimnisse*: neuen geheimen Clientschlüssel anlegen und den **Wert** kopieren.
+  Er läuft ab (höchstens 24 Monate) — rechtzeitig erneuern und in `.env` eintragen.
+- *Tokenkonfiguration*: optionalen Anspruch hinzufügen, Tokentyp **ID**, Anspruch **email**.
+  Ohne E-Mail im Token bricht die Anmeldung mit „keine E-Mail-Adresse übermittelt“ ab.
+
+**Rollen über App-Rollen, nicht über Gruppen.** Gruppen kommen bei Entra als Objekt-IDs, und
+wer in mehr als 200 Gruppen ist, bekommt gar keine Gruppenliste im Token. App-Rollen haben
+lesbare Namen und dieses Problem nicht:
+
+1. *App-Rollen*: zwei Rollen anlegen, zulässige Mitgliedstypen *Benutzer/Gruppen* —
+   „Wiki-Admin“ mit Wert `kb-admin`, „Wiki-Redaktion“ mit Wert `kb-editor`.
+2. *Unternehmensanwendungen → Wissensdatenbank → Benutzer und Gruppen*: Gruppen den Rollen
+   zuweisen. Wer nur lesen soll, wird der App ohne Rolle zugewiesen.
+3. *Eigenschaften*: **Zuweisung erforderlich = Ja**. Sonst kann sich jede Person im Mandanten
+   anmelden und liest alles, was Bereiche für alle Angemeldeten freigeben.
+
+In `.env` — mit der **Mandanten-ID**, nicht `common`, sonst passt der Issuer im Token nicht:
+
+```
+KB_OIDC_ISSUER=https://login.microsoftonline.com/<Verzeichnis-ID>/v2.0
+KB_OIDC_CLIENT_ID=<Anwendungs-ID>
+KB_OIDC_CLIENT_SECRET=<Wert des geheimen Clientschlüssels>
+KB_OIDC_BUTTON_LABEL=Microsoft-Konto
+KB_OIDC_GROUPS_CLAIM=roles
+KB_OIDC_ADMIN_GROUPS=kb-admin
+KB_OIDC_EDITOR_GROUPS=kb-editor
+KB_OIDC_DEFAULT_ROLE=reader
+```
+
+```bash
+docker compose up -d
+```
+
+Auf der Anmeldeseite erscheint dann „Mit Microsoft-Konto anmelden“; *Verwaltung → System*
+zeigt, ob SSO aktiv ist.
+
+Zwei Dinge, die bei Entra anders laufen:
+
+- **Lokale Konten werden nicht per E-Mail verknüpft.** Entra meldet nicht, ob eine E-Mail
+  bestätigt ist, und die Adresse ist in Entra änderbar — kein sicherer Schlüssel. Wer schon ein
+  lokales Konto mit seiner Firmen-E-Mail hat, bekommt beim SSO-Login den Hinweis, dass es die
+  E-Mail bereits gibt. Den lokalen Admin deshalb auf eine eigene Adresse legen (etwa
+  `notfall@wiki.local`) und als Notfallzugang behalten. Ein bestehendes lokales Konto mit der
+  Firmen-E-Mail löschen und die Person sich per SSO neu anmelden lassen — ihre Seiten bleiben.
+- **Die Rolle kommt bei jeder Anmeldung aus Entra**, solange `KB_OIDC_ADMIN_GROUPS` oder
+  `KB_OIDC_EDITOR_GROUPS` gesetzt ist; in der App geänderte Rollen werden dann überschrieben.
+  Beide leer lassen, wenn Rollen in der App gepflegt werden sollen. Den letzten aktiven
+  Administrator stuft eine Anmeldung nie herab.
+
+Mitgliedschaften in Bereichen vergibst du weiterhin in der App — Entra liefert nur die globale
+Rolle.
+
 ## Rollen und Rechte
 
 | Rolle | darf |

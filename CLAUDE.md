@@ -2,7 +2,9 @@
 
 ## Repo-Struktur
 
-Unterverzeichnis `knowledgebase/` im Repo neben `email-backuparchive/` und `nas-backup/`.
+Die Git-Repo-Wurzel ist `/home/locutus010/claude/`, nicht dieses Verzeichnis: hier liegt das
+Unterverzeichnis `knowledgebase/` neben `email-backuparchive/` und `nas-backup/`. Git-Pfade sind
+relativ zur Wurzel (`knowledgebase/backend/…`), entwickelt wird auf `main`.
 Spec: `docs/superpowers/specs/2026-10-15-knowledgebase-design.md`, Plan:
 `docs/superpowers/plans/2026-10-15-knowledgebase.md`.
 
@@ -12,6 +14,25 @@ frontend/  React 19, Vite, Tailwind 4, Radix, Tiptap 3 (npm)
 backup/    Image mit kb-backup / kb-restore
 e2e/       Playwright gegen den laufenden Stack
 ```
+
+## Veröffentlichung
+
+Das GitHub-Repo `locutus010/knowledgebase` (privat) enthält **nur dieses Unterverzeichnis**,
+mit den Dateien auf oberster Ebene — das Eltern-Repo trackt daneben noch andere Projekte, die
+dort nichts zu suchen haben. Nachschieben deshalb über einen frischen Subtree-Split, nicht mit
+einem gewöhnlichen `git push`:
+
+```bash
+cd /home/locutus010/claude
+git branch -D export-knowledgebase 2>/dev/null
+git subtree split --prefix=knowledgebase -b export-knowledgebase
+git push git@github.com:locutus010/knowledgebase.git export-knowledgebase:main
+```
+
+Der Split ist deterministisch: dieselben Commits ergeben dieselben Hashes, der Push ist also
+ein Fast-Forward. Vor jedem Push prüfen, dass keine `.env` und keine `backend/dev.env`
+versioniert sind (`git ls-files | grep -E '(^|/)(\.env|dev\.env)$'` muss leer bleiben) — beide
+enthalten echte Geheimnisse und stehen deshalb in `.gitignore`.
 
 ## Befehle
 
