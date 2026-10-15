@@ -1,16 +1,16 @@
-import CodeMirror, { EditorView } from '@uiw/react-codemirror'
+import CodeMirror, { EditorView, Prec } from '@uiw/react-codemirror'
 import { markdown, markdownLanguage } from '@codemirror/lang-markdown'
 import { languages } from '@codemirror/language-data'
 import { useTheme } from '@/lib/theme'
 
-const atlas = EditorView.theme({
+const atlas = Prec.highest(EditorView.theme({
   '&': { backgroundColor: 'transparent', color: 'var(--ink)' },
   '.cm-content': { fontFamily: 'var(--font-mono)', caretColor: 'var(--accent)', padding: '4px 0', lineHeight: '1.7' },
   '.cm-gutters': { display: 'none' },
   '.cm-activeLine': { backgroundColor: 'transparent' },
   '.cm-selectionBackground, &.cm-focused .cm-selectionBackground': { backgroundColor: 'var(--accent-soft) !important' },
   '.cm-cursor': { borderLeftColor: 'var(--accent)' },
-})
+}))
 
 export function MarkdownSource({ value, onChange, editable }: { value: string; onChange: (v: string) => void; editable: boolean }) {
   const { dark } = useTheme()

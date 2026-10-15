@@ -73,7 +73,9 @@ export function Editor({ value, onChange, mode, editable, onUpload, onReady }: P
       },
     },
     onUpdate: ({ editor: e }) => {
+      if (!e.isEditable) return
       const md = e.getMarkdown()
+      if (md === lastEmitted.current) return
       lastEmitted.current = md
       onChange(md)
     },
@@ -86,7 +88,9 @@ export function Editor({ value, onChange, mode, editable, onUpload, onReady }: P
   }, [editor]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    editor?.setEditable(editable)
+    // emitUpdate=false: sonst feuert schon das Umschalten in den Bearbeitungsmodus ein
+    // Update, und die Seite würde ohne jede Änderung gespeichert.
+    editor?.setEditable(editable, false)
   }, [editor, editable])
 
   // Inhalt von außen (anderer Modus, Versionswechsel, Konfliktlösung) übernehmen.
@@ -111,7 +115,7 @@ export function Editor({ value, onChange, mode, editable, onUpload, onReady }: P
         value={value}
         editable={editable}
         onChange={(md) => {
-          onChange(md)
+          if (md !== value) onChange(md)
         }}
       />
     )
