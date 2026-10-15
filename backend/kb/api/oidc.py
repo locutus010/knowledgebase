@@ -74,7 +74,9 @@ def _resolve_user(db, settings: Settings, claims: dict) -> User:
             raise oidc.OidcError("email_missing")
         existing = users_repo.by_email(db, email)
         if existing is not None:
-            if claims.get("email_verified") is not True:
+            # Nur ein unverknüpftes Konto übernehmen — sonst könnte eine zweite Identität mit
+            # derselben (bestätigten) Adresse ein fremdes SSO-Konto an sich ziehen.
+            if claims.get("email_verified") is not True or existing.oidc_subject is not None:
                 raise oidc.OidcError("email_conflict")
             existing.oidc_subject = sub
             user = existing

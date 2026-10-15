@@ -172,3 +172,13 @@ def test_tampered_flow_cookie_is_rejected(client, idp):
     r = finish(client, idp, q)
     assert r.headers["location"] == "/login?error=state"
     assert json
+
+
+def test_account_linked_to_another_subject_is_not_relinked(client, idp, db):
+    other = models.User(email="sso@example.org", name="X", role="admin", oidc_subject="anderer-sub")
+    db.add(other)
+    db.flush()
+    r = finish(client, idp, start(client), sub="s-2")
+    assert r.headers["location"] == "/login?error=email_conflict"
+    db.refresh(other)
+    assert other.oidc_subject == "anderer-sub"

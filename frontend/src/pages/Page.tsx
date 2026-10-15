@@ -144,6 +144,19 @@ function PageBody({ page }: { page: PageT }) {
   const stateRef = useRef(state)
   stateRef.current = state
 
+  // Neue Fassung vom Server übernehmen, solange hier nichts Eigenes ansteht — etwa wenn jemand
+  // anderes gespeichert hat oder eine Version wiederhergestellt wurde. Wer gerade schreibt,
+  // behält seinen Entwurf; das Zusammenführen übernimmt dann der Konfliktdialog.
+  useEffect(() => {
+    if (page.version === base.current || stateRef.current !== 'saved' || editing) return
+    base.current = page.version
+    setTitle(page.title)
+    setContent(page.content_md)
+    setIcon(page.icon)
+    setTags(page.tags)
+    setFavorite(page.is_favorite)
+  }, [page, editing])
+
   // Beim Verlassen der Seite innerhalb der App noch ausstehende Änderungen senden.
   useEffect(() => () => {
     if (stateRef.current === 'dirty' || stateRef.current === 'error') void save()
